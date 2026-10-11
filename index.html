@@ -1,0 +1,1070 @@
+<title>Účet od státu</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500;600&family=Instrument+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: hero s hlavní větou → kalkulačka (vstupy | účtenka) → dluhové hodiny → odpočet k dluhové brzdě → kam peníze jdou → zdroje */
+:root{
+  --ground:#e9edf2; --surface:#ffffff; --paper:#fffdf8; --ink:#16202c; --muted:#5a6676;
+  --line:#cfd6df; --stamp:#c8102e; --stamp-soft:#fbe7ea; --navy:#1d3a5f; --good:#2f7d4f; --warn:#b5650f;
+  --f-display:"Bricolage Grotesque",ui-sans-serif,system-ui,sans-serif;
+  --f-body:"Instrument Sans",ui-sans-serif,system-ui,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --ground:#0f151d; --surface:#18212c; --paper:#1d2733; --ink:#e8edf3; --muted:#9aa7b7;
+  --line:#2e3a48; --stamp:#ff5a6e; --stamp-soft:#3a1d24; --navy:#8fb4e3; --good:#5fc28a; --warn:#e6a04a; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --ground:#0f151d; --surface:#18212c; --paper:#1d2733; --ink:#e8edf3; --muted:#9aa7b7;
+  --line:#2e3a48; --stamp:#ff5a6e; --stamp-soft:#3a1d24; --navy:#8fb4e3; --good:#5fc28a; --warn:#e6a04a; color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--ground);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.55;padding-inline:16px;padding-block:24px 64px}
+.wrap{max-width:1120px;margin:0 auto;display:flex;flex-direction:column;gap:56px}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0;line-height:1.08}
+h1{font-size:clamp(2.1rem,5.5vw,3.6rem);font-weight:800;letter-spacing:-.02em}
+h2{font-size:clamp(1.5rem,3.2vw,2.2rem);font-weight:800;letter-spacing:-.01em}
+h3{font-size:1.1rem;font-weight:700}
+p{margin:0;max-width:68ch}
+.eyebrow{font-family:var(--f-mono);font-size:.78rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.num{font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+section{display:flex;flex-direction:column;gap:20px}
+
+/* hero */
+.hero{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:32px;align-items:end}
+.hero-copy{display:flex;flex-direction:column;gap:16px;min-width:0}
+.hundred{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:16px;display:flex;flex-direction:column;gap:8px;min-width:0;width:100%;max-width:280px;justify-self:end}
+.hundred .eyebrow{font-size:.68rem}
+.coins{display:grid;grid-template-columns:repeat(10,1fr);gap:3px}
+.coin{aspect-ratio:1;border-radius:50%;background:var(--line);transition:background .4s}
+.coin.state{background:var(--stamp)}
+.coin.you{background:var(--good)}
+.hundred-big{font-family:var(--f-display);font-weight:800;font-size:clamp(1.6rem,4vw,2.1rem);line-height:1}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:.85rem;color:var(--muted)}
+.legend span::before{content:"";display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:-1px;background:var(--c)}
+
+/* calculator */
+.calc{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,420px);gap:28px;align-items:start}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:22px;display:flex;flex-direction:column;gap:22px}
+.tabs{display:flex;flex-wrap:wrap;gap:6px}
+.tab{font:600 .9rem var(--f-body);padding:8px 12px;border:1px solid var(--line);background:transparent;color:var(--ink);border-radius:999px;cursor:pointer}
+.tab[aria-pressed="true"]{background:var(--navy);border-color:var(--navy);color:var(--surface)}
+.tab:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--stamp);outline-offset:2px}
+fieldset{border:0;padding:0;margin:0;display:flex;flex-direction:column;gap:14px}
+legend{font-family:var(--f-mono);font-size:.78rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;padding:0}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+label{display:flex;flex-direction:column;gap:5px;font-size:.88rem;font-weight:500;min-width:0}
+label small{font-weight:400;color:var(--muted);font-size:.78rem}
+input[type=number],select{font:500 1rem var(--f-mono);padding:9px 10px;border:1px solid var(--line);border-radius:4px;background:var(--paper);color:var(--ink);width:100%;font-variant-numeric:tabular-nums}
+.check{flex-direction:row;align-items:center;gap:8px;font-weight:400}
+.check input{width:18px;height:18px;accent-color:var(--navy)}
+input[type=range]{width:100%;accent-color:var(--stamp)}
+
+/* receipt */
+.receipt-wrap{position:sticky;top:calc(env(safe-area-inset-top,0px) + 16px)}
+.receipt{background:var(--paper);color:var(--ink);font-family:var(--f-mono);font-size:.86rem;padding:26px 22px 30px;position:relative;
+  box-shadow:0 1px 0 var(--line),0 12px 30px -18px rgba(0,0,0,.35);
+  -webkit-mask:radial-gradient(circle at 8px 100%,transparent 6px,#000 6.5px) 0 0/16px 100% repeat-x;mask:radial-gradient(circle at 8px 100%,transparent 6px,#000 6.5px) 0 0/16px 100% repeat-x}
+.r-head{text-align:center;display:flex;flex-direction:column;gap:2px;padding-bottom:12px;border-bottom:1px dashed var(--line);margin-bottom:10px}
+.r-head b{font-size:1rem;letter-spacing:.08em}
+.r-line{display:flex;justify-content:space-between;gap:12px;padding:3px 0}
+.r-line span:last-child{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.r-line.minus span:last-child{color:var(--stamp)}
+.r-line.hidden-cost span:first-child::after{content:" *";color:var(--muted)}
+.r-sum{border-top:1px dashed var(--line);margin-top:6px;padding-top:8px;font-weight:600}
+.r-total{border-top:2px solid var(--ink);border-bottom:2px solid var(--ink);margin-top:12px;padding:10px 0;font-weight:600;font-size:1rem}
+.r-total span:last-child{color:var(--stamp)}
+.r-note{color:var(--muted);font-size:.74rem;margin-top:12px;line-height:1.45}
+.stamp{position:absolute;right:16px;top:118px;transform:rotate(-12deg);border:3px solid var(--stamp);color:var(--stamp);font:700 .95rem var(--f-display);padding:4px 10px;border-radius:4px;letter-spacing:.06em;opacity:.85;background:var(--paper);pointer-events:none}
+.r-period{display:flex;gap:6px;justify-content:center;margin-bottom:10px}
+.r-period button{font:500 .75rem var(--f-mono);padding:4px 10px;border:1px solid var(--line);background:transparent;color:var(--ink);border-radius:3px;cursor:pointer}
+.r-period button[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+
+/* facts row */
+.facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.fact{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:18px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.fact .v{font-family:var(--f-display);font-weight:800;font-size:clamp(1.6rem,3.4vw,2.2rem);line-height:1.05}
+.fact p{font-size:.9rem;color:var(--muted)}
+
+/* debt */
+.debt{background:var(--navy);color:#fff;border-radius:6px;padding:28px 24px;display:flex;flex-direction:column;gap:22px}
+:root[data-theme="dark"] .debt,:root:not([data-theme="light"]) .debt{}
+.debt .eyebrow{color:rgba(255,255,255,.7)}
+.ticker{font-family:var(--f-mono);font-weight:600;font-size:clamp(1.5rem,5.4vw,3.2rem);letter-spacing:-.01em;line-height:1.05;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.debt-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.dcell{border-top:1px solid rgba(255,255,255,.25);padding-top:10px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.dcell b{font-family:var(--f-mono);font-size:1.15rem;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.dcell span{font-size:.82rem;color:rgba(255,255,255,.72)}
+.btn{font:600 .9rem var(--f-body);padding:10px 16px;border-radius:4px;border:1px solid currentColor;background:transparent;color:inherit;cursor:pointer;align-self:flex-start}
+.btn:hover{background:rgba(255,255,255,.1)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .debt{background:#13263f}}
+:root[data-theme="dark"] .debt{background:#13263f}
+
+/* countdown */
+.cd{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:24px;align-items:start}
+.cd-box{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:22px;display:flex;flex-direction:column;gap:16px;min-width:0}
+.cd-digits{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.cd-digits div{background:var(--stamp-soft);border-radius:4px;padding:10px 6px;text-align:center;display:flex;flex-direction:column;gap:2px}
+.cd-digits b{font:600 clamp(1.3rem,3.4vw,2rem) var(--f-mono);color:var(--stamp);font-variant-numeric:tabular-nums}
+.cd-digits span{font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+.cd-date{font-family:var(--f-display);font-weight:800;font-size:1.5rem}
+.slider-row{display:flex;flex-direction:column;gap:6px}
+.slider-row .lbl{display:flex;justify-content:space-between;font-size:.88rem;font-weight:500}
+.slider-row .lbl b{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.chart-box{overflow-x:auto}
+svg text{font-family:var(--f-mono)}
+
+/* budget */
+.bars{display:flex;flex-direction:column;gap:10px}
+.bar{display:grid;grid-template-columns:minmax(0,190px) minmax(0,1fr) auto;gap:12px;align-items:center;font-size:.92rem}
+.bar .track{height:14px;background:var(--line);border-radius:2px;overflow:hidden}
+.bar .fill{height:100%;background:var(--navy)}
+.bar.debt-row .fill{background:var(--stamp)}
+.bar b{font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+
+/* real-life hits */
+.hits{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.hit{border-left:4px solid var(--stamp);background:var(--surface);padding:16px 18px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.hit b{font-family:var(--f-display);font-weight:800;font-size:clamp(1.5rem,3.2vw,2rem);line-height:1.05;color:var(--stamp);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.hit p{font-size:.93rem}
+
+.verify{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:20px;display:flex;flex-direction:column;gap:10px}
+.verify ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:8px}
+.verify a{color:var(--navy)}
+.grand{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:24px;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:22px}
+.grand > div{display:flex;flex-direction:column;gap:12px;min-width:0}
+.grand-out{border-left:4px solid var(--stamp);padding-left:18px}
+.grand-out b{font-family:var(--f-display);font-weight:800;font-size:clamp(1.6rem,3.6vw,2.4rem);color:var(--stamp);line-height:1.05;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+@media (max-width:880px){.grand{grid-template-columns:1fr}}
+/* boom */
+.boom{background:var(--surface);border:2px solid var(--stamp);border-radius:6px;padding:26px 22px;position:relative;overflow:hidden}
+.fuse{position:relative;height:10px;border-radius:5px;background:repeating-linear-gradient(90deg,var(--line) 0 10px,var(--muted) 10px 12px);margin-top:6px}
+.fuse-burn{position:absolute;left:0;top:0;bottom:0;width:0;border-radius:5px;background:linear-gradient(90deg,var(--warn),var(--stamp));transition:width 1.2s ease}
+.spark{position:absolute;top:50%;width:18px;height:18px;margin:-9px 0 0 -9px;border-radius:50%;background:radial-gradient(circle,#fff 0 20%,#ffd166 35%,var(--stamp) 70%,transparent 72%);animation:spark .25s infinite alternate;left:0;transition:left 1.2s ease}
+@keyframes spark{to{transform:scale(1.35)}}
+.fuse-lbl{display:flex;justify-content:space-between;font-family:var(--f-mono);font-size:.8rem;color:var(--muted);gap:12px;flex-wrap:wrap}
+.boom-btn{align-self:flex-start;font:800 1.15rem var(--f-display);letter-spacing:.02em;padding:14px 22px;border:0;border-radius:6px;background:var(--stamp);color:#fff;cursor:pointer;box-shadow:0 6px 0 color-mix(in srgb,var(--stamp) 60%,#000)}
+.boom-btn:active{transform:translateY(3px);box-shadow:0 3px 0 color-mix(in srgb,var(--stamp) 60%,#000)}
+.blast{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.shard{border:1px solid var(--line);border-top:4px solid var(--stamp);background:var(--paper);padding:16px;display:flex;flex-direction:column;gap:6px;min-width:0;transform-origin:center}
+.shard b{font-family:var(--f-display);font-weight:800;font-size:clamp(1.3rem,2.8vw,1.75rem);color:var(--stamp);line-height:1.05;overflow-wrap:anywhere}
+.shard p{font-size:.92rem}
+.exploded .shard{animation:shard-in .9s cubic-bezier(.15,1.35,.35,1) both;animation-delay:var(--d,0s)}
+@keyframes shard-in{0%{transform:translate(var(--dx,0),var(--dy,0)) scale(.15) rotate(var(--r,20deg));opacity:0}15%{opacity:1}100%{transform:none;opacity:1}}
+.shard-me{grid-column:1 / -1;background:var(--stamp);border-color:var(--stamp);color:#fff}
+.shard-me .eyebrow{color:rgba(255,255,255,.8)}
+.me-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+.me-grid > div{display:flex;flex-direction:column;gap:6px;min-width:0}
+.shard-me b{color:#fff;font-size:clamp(2rem,5.5vw,3.4rem)}
+.shard-me p{font-size:1rem;color:#fff}
+@media (max-width:640px){.me-grid{grid-template-columns:1fr}}
+.blast-wait{border:2px dashed var(--line);border-radius:6px;padding:28px 18px;text-align:center;color:var(--muted);font-weight:500}
+.fuse.burning .fuse-burn,.fuse.burning .spark{transition:width 1.5s linear,left 1.5s linear}
+.fuse.burning .spark{width:28px;height:28px;margin:-14px 0 0 -14px;animation:spark .08s infinite alternate}
+.boom-btn:disabled{opacity:.6;cursor:default}
+.shake{animation:shake .6s cubic-bezier(.36,.07,.19,.97) both}
+@keyframes shake{10%,90%{transform:translate(-2px,1px)}20%,80%{transform:translate(5px,-3px)}30%,50%,70%{transform:translate(-9px,4px)}40%,60%{transform:translate(9px,-4px)}}
+#boom-canvas{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:50;display:none}
+#boom-flash{position:fixed;inset:0;pointer-events:none;z-index:51;background:radial-gradient(circle at var(--fx,50%) var(--fy,50%),#fff 0,#ffd166 18%,var(--stamp) 45%,transparent 75%);opacity:0}
+#boom-flash.on{animation:flash .9s ease-out}
+@keyframes flash{0%{opacity:0}8%{opacity:1}100%{opacity:0}}
+@media (max-width:880px){.blast{grid-template-columns:1fr}}
+html.big body{font-size:19px}
+html.big .receipt{font-size:1rem}
+html.big label{font-size:1rem}
+
+/* act */
+.act{background:var(--stamp-soft);border-radius:6px;padding:28px 24px}
+.steps{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.step{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:18px;display:flex;flex-direction:column;gap:10px;align-items:flex-start;min-width:0}
+.step .share-text{width:100%;flex:none;white-space:pre-wrap;font-size:.8rem;max-height:220px;overflow:auto}
+.step a:not(.btn-dark){color:var(--navy)}
+a.btn-dark{text-decoration:none;display:inline-block}
+@media (max-width:880px){.hits,.steps{grid-template-columns:1fr}}
+
+/* sources */
+.sources{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:22px;display:flex;flex-direction:column;gap:14px;font-size:.9rem}
+.sources ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
+.sources a{color:var(--navy)}
+details summary{cursor:pointer;font-weight:600}
+details[open] summary{margin-bottom:10px}
+.share{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.share-text{font-family:var(--f-mono);font-size:.85rem;background:var(--paper);border:1px solid var(--line);border-radius:4px;padding:10px 12px;flex:1 1 320px;min-width:0;overflow-wrap:anywhere}
+.btn-dark{font:600 .9rem var(--f-body);padding:10px 16px;border-radius:4px;border:0;background:var(--ink);color:var(--paper);cursor:pointer}
+
+@media (max-width:880px){
+  .hero,.calc,.cd{grid-template-columns:1fr}
+  .hundred{justify-self:start}
+  .receipt-wrap{position:static}
+  .facts{grid-template-columns:1fr}
+  .debt-grid{grid-template-columns:1fr 1fr}
+}
+@media (max-width:480px){
+  .grid2{grid-template-columns:1fr}
+  .bar{grid-template-columns:1fr auto}
+  .bar .track{grid-column:1 / -1;grid-row:2}
+}
+@media (prefers-reduced-motion:reduce){.coin{transition:none}}
+</style>
+
+<div class="wrap">
+
+<section class="debt" aria-labelledby="debt-h">
+  <span class="eyebrow">Státní dluh ČR · odhad v reálném čase</span>
+  <h2 id="debt-h" style="color:#fff">Dluh, který splatíme my a naše děti</h2>
+  <div class="ticker" id="debt-tick">–</div>
+  <div class="debt-grid">
+    <div class="dcell"><b id="d-pp">–</b><span>připadá na každého obyvatele, včetně dětí</span></div>
+    <div class="dcell"><b id="d-ps">–</b><span>přibývá každou sekundu</span></div>
+    <div class="dcell"><b id="d-since">–</b><span>přibylo od chvíle, kdy jsi otevřel tuto stránku</span></div>
+    <div class="dcell"><b id="d-int">–</b><span>zaplatí stát v roce 2026 jen na úrocích, to je <span id="d-intpp">–</span> na osobu</span></div>
+  </div>
+  <p style="color:rgba(255,255,255,.8);font-size:.92rem">Výchozí bod je stav k 30. 6. 2026 podle MF (3 726,8 mld. Kč). Další růst je dopočítaný podle plánu MF, který na konec roku 2026 počítá s 3 991 mld. Kč. Na úroky ze státního dluhu jde letos zhruba 39 % toho, co stát dává na celé školství.</p>
+  <button class="btn" id="refresh">Aktualizovat data</button>
+  <span id="refresh-msg" style="font-size:.85rem;color:rgba(255,255,255,.75)"></span>
+</section>
+
+
+<header class="hero">
+  <div class="hero-copy">
+    <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center"><span class="eyebrow">Česká republika · daně a odvody 2026</span><button class="tab" id="bigfont" aria-pressed="false">Větší písmo</button></div>
+    <h1>Pracuješ celý týden. Kolik z toho je tvoje?</h1>
+    <p>Na výplatní pásce vidíš jen část. Zaměstnavatel za tebe odvede další peníze, které nikdy neuvidíš. Z toho, co ti zbyde, pak platíš DPH a spotřební daně v každém rohlíku a litru benzínu. A stát si k tomu každou sekundu půjčuje další tisíce korun, které budou splácet tvoje děti. Zadej svůj příjem a uvidíš celý účet.</p>
+  </div>
+  <div class="hundred" aria-live="polite">
+    <span class="eyebrow">Ze 100 Kč, které vyděláš (vč. odvodů firmy)</span>
+    <div class="hundred-big num"><span id="h-you">–</span> Kč <span class="muted" style="font-size:.45em;font-weight:500">zůstane tobě</span></div>
+    <div class="coins" id="coins" aria-hidden="true"></div>
+    <div class="legend"><span style="--c:var(--stamp)">stát: <b id="h-state" class="num">–</b> Kč</span><span style="--c:var(--good)">ty</span></div>
+  </div>
+</header>
+
+<section aria-labelledby="calc-h">
+  <h2 id="calc-h">Tvůj účet</h2>
+  <div class="calc">
+    <div class="panel">
+      <fieldset>
+        <legend>Jak pracuješ</legend>
+        <div class="tabs" role="group" aria-label="Typ práce">
+          <button class="tab" data-type="hpp" aria-pressed="true">Zaměstnanec</button>
+          <button class="tab" data-type="osvc" aria-pressed="false">OSVČ</button>
+          <button class="tab" data-type="pausal" aria-pressed="false">OSVČ paušální daň</button>
+          <button class="tab" data-type="dpp" aria-pressed="false">DPP</button>
+          <button class="tab" data-type="dpc" aria-pressed="false">DPČ</button>
+          <button class="tab" data-type="duch" aria-pressed="false">Důchodce</button>
+        </div>
+
+        <div id="in-duch" class="grid2" hidden>
+          <label for="pension">Důchod měsíčně (Kč)<input id="pension" type="number" min="0" step="100" value="21839"><small>Výchozí hodnota je průměrný starobní důchod od ledna 2026.</small></label>
+        </div>
+
+        <div id="in-emp" class="grid2">
+          <label for="gross">Hrubá mzda měsíčně (Kč)<input id="gross" type="number" min="0" step="500" value="48967"><small>Výchozí hodnota je průměrná mzda pro rok 2026.</small></label>
+          <label class="check" for="decl"><input id="decl" type="checkbox" checked>Podepsané prohlášení k dani (sleva na poplatníka)</label>
+        </div>
+
+        <div id="in-osvc" class="grid2" hidden>
+          <label for="rev">Příjmy (tržby) měsíčně (Kč)<input id="rev" type="number" min="0" step="1000" value="80000"></label>
+          <label for="exp">Výdaje<select id="exp">
+            <option value="0.6">Paušál 60 % (většina živností)</option>
+            <option value="0.8">Paušál 80 % (řemeslné, zemědělství)</option>
+            <option value="0.4">Paušál 40 % (svobodná povolání)</option>
+            <option value="0.3">Paušál 30 % (pronájem)</option>
+            <option value="real">Skutečné výdaje</option>
+          </select></label>
+          <label for="realexp" id="realexp-l" hidden>Skutečné výdaje měsíčně (Kč)<input id="realexp" type="number" min="0" step="1000" value="30000"></label>
+        </div>
+
+        <div id="in-pausal" class="grid2" hidden>
+          <label for="prev">Příjmy měsíčně (Kč)<input id="prev" type="number" min="0" step="1000" value="70000"></label>
+          <label for="band">Pásmo paušální daně<select id="band">
+            <option value="9984">1. pásmo – 9 984 Kč/měs.</option>
+            <option value="16745">2. pásmo – 16 745 Kč/měs.</option>
+            <option value="27139">3. pásmo – 27 139 Kč/měs.</option>
+          </select></label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Co měsíčně utratíš</legend>
+        <div class="grid2">
+          <label for="food">Jídlo a nealko (Kč)<input id="food" type="number" min="0" step="500" value="9000"><small>DPH 12 %</small></label>
+          <label for="energy">Elektřina, plyn, teplo (Kč)<input id="energy" type="number" min="0" step="500" value="4500"><small>DPH 21 %</small></label>
+          <label for="rent">Nájem nebo splátka hypotéky (Kč)<input id="rent" type="number" min="0" step="500" value="9000"><small>Bez DPH, nepočítá se do daní</small></label>
+          <label for="fuelL">Palivo litrů měsíčně<input id="fuelL" type="number" min="0" step="10" value="80"></label>
+          <label for="fuelType">Palivo<select id="fuelType"><option value="b">Benzin</option><option value="n">Nafta</option></select></label>
+          <label for="fuelP">Cena za litr (Kč)<input id="fuelP" type="number" min="0" step="0.5" value="38"></label>
+          <label for="beer">Piv (0,5 l, 12°) týdně<input id="beer" type="number" min="0" step="1" value="5"></label>
+          <label for="beerP">Cena piva (Kč)<input id="beerP" type="number" min="0" step="1" value="55"></label>
+          <label for="cig">Krabiček cigaret týdně<input id="cig" type="number" min="0" step="1" value="0"></label>
+          <label for="cigP">Cena krabičky (Kč)<input id="cigP" type="number" min="0" step="1" value="160"></label>
+          <label for="prop">Daň z nemovitosti ročně (Kč)<input id="prop" type="number" min="0" step="100" value="0"></label>
+          <label for="save">Kolik % čistého příjmu ušetříš<input id="save" type="number" min="0" max="90" step="1" value="10"><small>Zbytek se počítá jako ostatní nákupy s DPH 21 %.</small></label>
+        </div>
+      </fieldset>
+
+      <fieldset id="in-years">
+        <legend>Celý pracovní život</legend>
+        <div class="grid2">
+          <label for="years">Kolik let budeš pracovat<input id="years" type="number" min="1" max="60" step="1" value="40"></label>
+        </div>
+      </fieldset>
+    </div>
+
+    <div class="receipt-wrap">
+      <div class="receipt" id="receipt" aria-live="polite">
+        <div class="r-head"><b>ÚČET OD STÁTU</b><span>Kalkulace za rok 2026</span><span id="r-type">Zaměstnanec</span></div>
+        <div class="r-period" role="group" aria-label="Období">
+          <button data-p="1" aria-pressed="true">měsíc</button>
+          <button data-p="12" aria-pressed="false">rok</button>
+        </div>
+        <div id="r-lines"></div>
+        <div class="stamp" id="stamp">–</div>
+        <p class="r-note" id="r-note"></p>
+      </div>
+    </div>
+  </div>
+
+  <div class="facts">
+    <div class="fact"><span class="eyebrow">Tvůj den daňové svobody</span><span class="v num" id="f-day">–</span><p>Do tohoto dne v roce pracuješ jen pro stát. Teprve potom pro sebe.</p></div>
+    <div class="fact"><span class="eyebrow">Za celý pracovní život</span><span class="v num" id="f-life">–</span><p id="f-life-p">Tolik odvedeš státu v dnešních cenách.</p></div>
+    <div class="fact"><span class="eyebrow">Z toho let práce jen pro stát</span><span class="v num" id="f-years">–</span><p id="f-years-p">Tolik let z tvého pracovního života připadne na daně a odvody.</p></div>
+  </div>
+
+  <div class="share">
+    <div class="share-text" id="share-text">–</div>
+    <button class="btn-dark" id="copy">Zkopírovat výsledek</button>
+  </div>
+</section>
+
+<section aria-labelledby="real-h">
+  <span class="eyebrow">Co to znamená v tvém životě</span>
+  <h2 id="real-h">Přeloženo do normální řeči</h2>
+  <div class="hits">
+    <div class="hit"><b id="x-week">–</b><p id="x-week-p">–</p></div>
+    <div class="hit"><b id="x-gap">–</b><p id="x-gap-p">–</p></div>
+    <div class="hit"><b id="x-int">–</b><p id="x-int-p">–</p></div>
+    <div class="hit"><b id="x-baby">–</b><p>Tolik státního dluhu připadá na každé dítě, které se dnes narodí. Nic si nepůjčilo, ale splácet to bude.</p></div>
+    <div class="hit"><b id="x-min">–</b><p>O tolik vzroste státní dluh za každou minutu, kterou strávíš na této stránce. I v noci a o víkendu.</p></div>
+    <div class="hit"><b id="x-edu">39 %</b><p>Tolik, kolik stát letos dá na celé školství, zaplatí jen na úrocích ze svého dluhu. Úroky nepostaví žádnou školu, silnici ani nemocnici.</p></div>
+  </div>
+</section>
+
+<section aria-labelledby="sen-h">
+  <span class="eyebrow">Pro naše rodiče a prarodiče</span>
+  <h2 id="sen-h">Důchody dluh nezpůsobují. Ale dluh je může ohrozit</h2>
+  <div class="hits">
+    <div class="hit"><b>Vyrovnaný</b><p>Důchodový účet je teď zhruba v rovnováze. Za první půlrok 2026 vybral stát na důchodovém pojištění 365,4 mld. Kč a na důchody vyplatil 363,5 mld. Kč. Dluh roste z jiných výdajů.</p></div>
+    <div class="hit"><b id="s-int">–</b><p>O tolik by šel měsíčně zvýšit každý z 2,82 milionu důchodů, kdyby stát nemusel platit 110 miliard ročně na úrocích ze svého dluhu.</p></div>
+    <div class="hit"><b>43 %</b><p>Tolik státního rozpočtu jde přes ministerstvo práce a sociálních věcí, hlavně na důchody. Až dluh narazí na dluhovou brzdu, musí vláda předložit rozpočet bez schodku. Největší položka bude první na ráně.</p></div>
+  </div>
+  <div class="grand">
+    <div>
+      <h3>Kolik dluhu zdědí tvoje vnoučata?</h3>
+      <p>Každé dítě v Česku dnes nese svůj díl státního dluhu, i když si nikdy nic nepůjčilo. Splácet ho budou ze svých platů celý život, a to včetně úroků.</p>
+      <label for="grandkids" style="max-width:220px">Kolik máš vnoučat<input id="grandkids" type="number" min="1" max="30" step="1" value="3"></label>
+    </div>
+    <div class="grand-out">
+      <span class="eyebrow">Jejich díl státního dluhu dnes</span>
+      <b id="g-now">–</b>
+      <span class="eyebrow">Jejich díl úroků každý rok</span>
+      <b id="g-int">–</b>
+      <p class="muted" id="g-p">–</p>
+    </div>
+  </div>
+  <p>I důchodce platí daně. Z důchodu se daň z příjmu neplatí, ale DPH a spotřební daně ano, v každém nákupu. Přepni kalkulačku výše na <b>Důchodce</b> a uvidíš, kolik to dělá z tvého důchodu.</p>
+</section>
+
+<section aria-labelledby="hist-h">
+  <span class="eyebrow">Ověř si to sám</span>
+  <h2 id="hist-h">Dluh rostl skoro za každé vlády</h2>
+  <p>Tohle není o jedné straně. Státní dluh byl v roce 1993 asi 159 miliard korun. Dnes je to přes 3 700 miliard. Jediné období, kdy dluh nerostl, byly roky 2013 až 2019. Všechna čísla jsou z Ministerstva financí.</p>
+  <div class="cd-box">
+    <span class="eyebrow">Státní dluh na konci roku, mld. Kč</span>
+    <div class="chart-box"><svg id="hist" viewBox="0 0 560 280" width="100%" role="img" aria-label="Vývoj státního dluhu 1993 až 2026"></svg></div>
+  </div>
+  <div class="verify">
+    <h3>Nevěř nám, ověř si to</h3>
+    <p>Každé hlavní číslo na této stránce najdeš na webu úřadu, který ho zveřejňuje. Nemusíš věřit nám ani médiím.</p>
+    <ul>
+      <li><b>Státní dluh 3 726,8 mld. Kč (30. 6. 2026):</b> Ministerstvo financí, <a href="https://mf.gov.cz/cs/rozpoctova-politika/rizeni-statniho-dluhu/publikace/dluhove-portfolio-ctvrtletni-informace/2026/ctvrtletni-zprava-o-rizeni-statniho-dluhu-ceske-re-64593" target="_blank" rel="noopener">Čtvrtletní zpráva o řízení státního dluhu</a>, hned v první části.</li>
+      <li><b>Schodek rozpočtu 2026 je 310 mld. Kč:</b> Ministerstvo financí, <a href="https://mf.gov.cz/cs/ministerstvo/media/tiskove-zpravy/2026/snemovna-schvalila-zakon-o-statnim-rozpoctu-2026-63269" target="_blank" rel="noopener">tisková zpráva o schválení rozpočtu</a>. Tamtéž tabulka, kolik dostane které ministerstvo.</li>
+      <li><b>Důchodový účet:</b> ČSSZ, <a href="https://www.ipzs.gov.cz/documents/20143/3286322/2 Ukazatele červen 2026.pdf/db17b358-76cf-5c69-b947-a6340d87e0ae" target="_blank" rel="noopener">měsíční ukazatele důchodového pojištění</a>.</li>
+      <li><b>Odvody ze mzdy si spočítáš na kalkulačce:</b> z hrubé mzdy 48 967 Kč odvede firma navíc 24,8 % na sociální a 9 % na zdravotní pojištění (16 552 Kč). Ty zaplatíš 7,1 % a 4,5 % (5 681 Kč) a daň 15 % minus sleva 2 570 Kč (4 780 Kč). Dohromady 27 013 Kč z 65 519 Kč, které tvoje práce stojí.</li>
+    </ul>
+  </div>
+</section>
+
+
+
+<section aria-labelledby="cd-h">
+  <span class="eyebrow">Kdy narazíme do zdi</span>
+  <h2 id="cd-h">Odpočet do dluhové brzdy</h2>
+  <p>Zákon o pravidlech rozpočtové odpovědnosti stanoví dluhovou brzdu na 55 % HDP. Když ji veřejný dluh překročí, musí vláda, kraje i obce předložit vyrovnané rozpočty. V praxi to znamená prudké škrty nebo vyšší daně najednou. Odpočet níže počítá, kdy na ni dojdeme při zvoleném tempu zadlužování.</p>
+  <div class="cd">
+    <div class="cd-box">
+      <span class="eyebrow">Při tomto tempu narazíme</span>
+      <div class="cd-date" id="cd-date">–</div>
+      <div class="cd-digits" aria-live="off">
+        <div><b id="cd-y">–</b><span>let</span></div>
+        <div><b id="cd-d">–</b><span>dní</span></div>
+        <div><b id="cd-h2">–</b><span>hodin</span></div>
+        <div><b id="cd-s">–</b><span>sekund</span></div>
+      </div>
+      <div class="slider-row">
+        <div class="lbl"><label for="def" style="font-weight:500">O kolik dluh roste ročně (% HDP)</label><b id="def-v">3,6 %</b></div>
+        <input id="def" type="range" min="0" max="6" step="0.1" value="3.6">
+        <small class="muted">3,6 % podle predikce MF ze srpna 2026: vládní dluh vzroste ze 44,2 % HDP (2025) na 45,8 % HDP (2026), to je asi 319 mld. Kč.</small>
+      </div>
+      <div class="slider-row">
+        <div class="lbl"><label for="gdp" style="font-weight:500">Nominální růst HDP od roku 2028</label><b id="gdp-v">5,7 %</b></div>
+        <input id="gdp" type="range" min="1" max="9" step="0.1" value="5.7">
+        <small class="muted">Pro roky 2026 a 2027 platí predikce MF: 4,6 % a 6,3 %. Výchozích 5,7 % je průměr skutečnosti a predikce MF za roky 2025 až 2027 (6,2 %, 4,6 %, 6,3 %).</small>
+      </div>
+      <p class="muted" style="font-size:.85rem">Pro srovnání: Národní rozpočtová rada v říjnu 2025 odhadla náraz na dluhovou brzdu na rok 2037.</p>
+    </div>
+    <div class="cd-box">
+      <span class="eyebrow">Dluh vládních institucí v % HDP, projekce</span>
+      <div class="chart-box"><svg id="chart" viewBox="0 0 560 300" width="100%" role="img" aria-label="Projekce dluhu v procentech HDP"></svg></div>
+    </div>
+  </div>
+</section>
+
+<section class="boom" id="boom" aria-labelledby="boom-h">
+  <span class="eyebrow">Den D</span>
+  <h2 id="boom-h">Co se stane, až narazíme na dluhovou brzdu</h2>
+  <div class="fuse" aria-hidden="true"><div class="fuse-burn" id="fuse-burn"></div><span class="spark" id="spark"></span></div>
+  <div class="fuse-lbl"><span>Dnes ~45 % HDP</span><span id="fuse-date">Brzda 55 % HDP</span></div>
+  <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end">
+    <label for="household" style="max-width:200px">Kolik vás je doma<input id="household" type="number" min="1" max="15" step="1" value="3"></label>
+    <button class="boom-btn" id="boom-btn">Odpálit den D</button>
+  </div>
+  <div class="blast-wait" id="blast-wait">Stiskni tlačítko a uvidíš, co nás čeká v den, kdy dluh narazí na brzdu.</div>
+  <div class="blast" id="blast" hidden>
+    <div class="shard shard-me">
+      <span class="eyebrow">Tvůj den D</span>
+      <div class="me-grid">
+        <div><b id="me-cut">–</b><p id="me-cut-p">–</p></div>
+        <div><b id="me-tax">–</b><p id="me-tax-p">–</p></div>
+      </div>
+    </div>
+    <div class="shard"><b>310 mld. Kč</b><h3>Díra, která se musí zalepit za rok</h3><p>Zákon nařídí vládě předložit rozpočet bez schodku. Při dnešním schodku to znamená najít 310 miliard korun za jediný rok, ne postupně.</p></div>
+    <div class="shard"><b>5 měsíců důchodů</b><h3>Tolik je 310 miliard</h3><p>Všechny důchody v Česku stojí zhruba 60 miliard měsíčně. Díra 310 miliard je jako kdyby 2,8 milionu důchodců nedostalo nic od ledna do května.</p></div>
+    <div class="shard"><b>Všechny školy</b><h3>Nebo celé školství</h3><p>Celé ministerstvo školství stojí 268,7 miliardy. Kdyby se zavřely všechny školy, školky i univerzity a nevyplatil se ani jeden učitel, pořád by chybělo 41 miliard.</p></div>
+    <div class="shard"><b>Kraje a obce</b><h3>Škrtat musí všichni</h3><p>Vyrovnané rozpočty musí schválit i kraje, obce a další veřejné instituce. Dopadne to i na tvou obec.</p></div>
+    <div class="shard"><b>110 mld. Kč</b><h3>Úroky se platí dál</h3><p>Na úroky ze starého dluhu musí stát dál platit desítky miliard ročně, ať škrtá, kde škrtá. Ty peníze nikdo škrtnout nemůže.</p></div>
+  </div>
+  <p class="muted" style="font-size:.85rem">Obě čísla v „Tvém dni D“ jsou modelové situace se schodkem 310 mld. Kč: rovnoměrné škrty 13,5 % všech výdajů státu, nebo stejná částka vybraná na daních. Ve skutečnosti by vláda nejspíš obojí kombinovala. Měsíční výdaje na důchody vychází z dat ČSSZ za 1. pololetí 2026 (363,5 mld. Kč za půl roku). Dluhová brzda není bankrot. Je to zákonná pojistka, která vládu donutí okamžitě přestat se zadlužovat. Čím později se to stane, tím větší díra se musí zalepit najednou. Datum vychází z odpočtu výše, Národní rozpočtová rada odhaduje rok 2037. Podle člena Národní rozpočtové rady Petra Musila se už při dluhu nad 50 % HDP snižují platy poslanců a senátorů o 20 %.</p>
+</section>
+<canvas id="boom-canvas" aria-hidden="true"></canvas>
+<div id="boom-flash" aria-hidden="true"></div>
+
+<section aria-labelledby="bud-h">
+  <span class="eyebrow">Kam tvoje peníze jdou</span>
+  <h2 id="bud-h">Tvoje daně podle státního rozpočtu 2026</h2>
+  <p>Tvoje zdravotní pojištění jde přímo zdravotním pojišťovnám. Zbytek tvých daní a odvodů je tu rozdělený podle výdajů schváleného státního rozpočtu na rok 2026 (2 287,6 mld. Kč bez prostředků EU).</p>
+  <div class="bars" id="bars"></div>
+</section>
+
+<section class="act" aria-labelledby="act-h">
+  <span class="eyebrow">Naštvalo tě to?</span>
+  <h2 id="act-h">Nezůstávej u toho. Tady je, co můžeš udělat</h2>
+  <p>Politici počítají s tím, že se lidi rozčílí u počítače a druhý den zapomenou. Tyhle kroky jsou legální, zaberou pár minut a dají se doložit čísly výše.</p>
+  <div class="steps">
+    <div class="step">
+      <h3>Napiš svému poslanci a senátorovi</h3>
+      <p>Jeden e-mail od voliče s konkrétními čísly má větší váhu, než si myslíš. Kontakty najdeš na <a href="https://www.psp.cz" target="_blank" rel="noopener">psp.cz</a> (Poslanci) a <a href="https://www.senat.cz" target="_blank" rel="noopener">senat.cz</a> (Senátoři). Text níže už obsahuje tvoje čísla.</p>
+      <div class="share-text" id="mail-text">–</div>
+      <button class="btn-dark" id="copy-mail">Zkopírovat e-mail</button>
+    </div>
+    <div class="step">
+      <h3>Podepiš nebo založ petici</h3>
+      <p>Petici, kterou podepíše aspoň 10 000 lidí, musí Senát projednat na své schůzi. Petici může sepsat kdokoli, podpisy se sbírají se jménem a adresou.</p>
+      <a class="btn-dark" id="petition" href="#" target="_blank" rel="noopener" hidden>Podepsat petici</a>
+    </div>
+    <div class="step">
+      <h3>Přijď na shromáždění, nebo ho svolej</h3>
+      <p>Shromáždění na veřejném místě stačí oznámit obecnímu úřadu nejpozději 5 dní předem. Nepotřebuješ povolení, je to tvoje ústavní právo (zákon č. 84/1990 Sb.).</p>
+    </div>
+    <div class="step">
+      <h3>Pošli svůj účet dál</h3>
+      <p>Čím víc lidí uvidí vlastní čísla, tím těžší je to ignorovat. Zkopíruj výsledek a sdílej ho s #UcetOdStatu.</p>
+      <button class="btn-dark" id="copy2">Zkopírovat můj výsledek</button>
+    </div>
+  </div>
+</section>
+
+<section class="sources" aria-labelledby="src-h">
+  <h3 id="src-h">Zdroje a metodika</h3>
+  <p class="muted">Data ověřena 11. 10. 2026. Čísla se mění, když instituce zveřejní nová data: dluh MF zveřejňuje čtvrtletně, sazby se mění obvykle jednou ročně.</p>
+  <ul>
+    <li><a href="https://mf.gov.cz/cs/rozpoctova-politika/rizeni-statniho-dluhu/publikace/dluhove-portfolio-ctvrtletni-informace/2026/ctvrtletni-zprava-o-rizeni-statniho-dluhu-ceske-re-64593" target="_blank" rel="noopener">MF ČR: Čtvrtletní zpráva o řízení státního dluhu, 1. pololetí 2026</a> (dluh 3 726,8 mld. Kč)</li>
+    <li><a href="https://mf.gov.cz/cs/ministerstvo/media/tiskove-zpravy/2026/snemovna-schvalila-zakon-o-statnim-rozpoctu-2026-63269" target="_blank" rel="noopener">MF ČR: Schválený státní rozpočet 2026</a> (schodek 310 mld. Kč, výdaje podle kapitol)</li>
+    <li><a href="https://www.blesk.cz/clanek/844147" target="_blank" rel="noopener">ČTK: plán dluhu na konec 2026 (3 991 mld. Kč) a úroky 110 mld. Kč</a></li>
+    <li><a href="https://mf.gov.cz/cs/ministerstvo/media/tiskove-zpravy/2026/ministerstvo-financi-zverejnilo-srpnovou-makroekon-64886" target="_blank" rel="noopener">MF ČR: Makroekonomická predikce, srpen 2026</a> (nominální HDP, dluh 45,8 % HDP v roce 2026)</li>
+    <li><a href="https://csu.gov.cz/rychle-informace/notifikace-deficitu-a-dluhu-vladnich-instituci-2025-druhe-notifikace-udaje-zaslane-eurostatu-" target="_blank" rel="noopener">ČSÚ: dluh vládních institucí 2025 (44,2 % HDP)</a></li>
+    <li><a href="https://www.rozpoctovarada.cz/ke-stazeni/tz-nrr-udrzitelnejsi-verejne-finance" target="_blank" rel="noopener">Národní rozpočtová rada: Zpráva o dlouhodobé udržitelnosti, říjen 2025</a> (náraz na brzdu 2037)</li>
+    <li><a href="https://www.zdirec.cz/storage/content/Aktuality/zpr-vodaj-cssz-leden-2026.pdf" target="_blank" rel="noopener">ČSSZ: důležité údaje pro rok 2026</a> (průměrná mzda 48 967 Kč, max. vyměřovací základ)</li>
+    <li><a href="https://www.businessinfo.cz/clanky/kdo-plati-minimalni-a-kdo-vyssi-zalohy-na-povinna-pojisteni-hlidejte-si-terminy/" target="_blank" rel="noopener">BusinessInfo: minimální zálohy OSVČ a paušální daň 2026</a></li>
+    <li><a href="https://www.finance.cz/553416-hranice-pro-odvod-pojistneho-u-dpp-se-od-roku-2026-zvysi-o-petistovku" target="_blank" rel="noopener">Finance.cz: limity DPP a DPČ 2026</a></li>
+    <li><a href="https://rulecalc.com/cs/dan/spotrebni-dane" target="_blank" rel="noopener">Sazby spotřebních daní 2026</a></li>
+    <li><a href="https://www.ceskenoviny.cz/zpravy/2584112" target="_blank" rel="noopener">ČTK/MF: vývoj státního dluhu 1993–2023</a> a <a href="https://mf.gov.cz/cs/ministerstvo/media/tiskove-zpravy/2025/ministerstvo-financi-zverejnilo-zpravu-o-rizeni-st-59030" target="_blank" rel="noopener">MF: dluh na konci 2024</a></li>
+    <li><a href="https://www.seznamzpravy.cz/clanek/do-peti-let-jsme-na-hranici-dluhove-brzdy-varuje-sefka-narodni-rozpoctove-rady-130442" target="_blank" rel="noopener">Seznam Zprávy: co zákon nařizuje po překročení dluhové brzdy</a> a <a href="https://www.echo24.cz/a/HmmtX/statni-rozpocet-pravidla-dluhova-brzda-ustava-seminar-snemovna-platy-politiku-narodni-rozpoctova-rada" target="_blank" rel="noopener">Echo24: P. Musil (NRR) o platech politiků nad 50 % HDP</a></li>
+    <li><a href="https://mpsv.gov.cz/duchody-se-v-lednu-opet-navysi-prumerna-starobni-penze-dosahne-21-839-korun-mesicne" target="_blank" rel="noopener">MPSV: průměrný starobní důchod od ledna 2026 (21 839 Kč)</a></li>
+    <li><a href="https://www.epravo.cz/top/zakony/sbirka-zakonu/zakon-ze-dne-14-ledna-2015-kterym-se-meni-zakon-c-1071999-sb-o-jednacim-radu-senatu-ve-zneni-pozdejsich-predpisu-20421.html" target="_blank" rel="noopener">Jednací řád Senátu, § 142a</a> (petice s 10 000 podpisy) a <a href="https://dostupnyadvokat.cz/zakony/o-pravu-shromazdovacim" target="_blank" rel="noopener">zákon o právu shromažďovacím, § 5</a></li>
+  </ul>
+  <details>
+    <summary>Co výpočet zjednodušuje</summary>
+    <ul>
+      <li>Nepočítá slevy na děti, manžela, studenta ani daňový bonus. Kdo je uplatňuje, odvede méně.</li>
+      <li>DPH je spočítaná z celé útraty v dané kategorii. Ostatní nákupy mají sazbu 21 %, i když část zboží a služeb má 12 % nebo je osvobozená.</li>
+      <li>Nafta se počítá se základní sazbou spotřební daně 9,95 Kč/l. Část roku 2026 platila dočasně snížená sazba 8,01 Kč/l.</li>
+      <li>Paušální daň v 1. pásmu se má během roku 2026 snížit zhruba o 800 Kč měsíčně. Kalkulačka počítá s částkou z ledna.</li>
+      <li>OSVČ se počítá jako hlavní činnost. Minimální zálohy na sociální pojištění jsou 5 720 Kč (leden až červen) a 5 005 Kč (od července), na zdravotní 3 306 Kč.</li>
+      <li>Dluhová brzda se měří na dluhu všech vládních institucí (stát, kraje, obce). Ten je jiný než státní dluh v dluhových hodinách. Projekce: rok 2026 podle predikce MF (45,8 % HDP), dál dluh roste o zvolený podíl HDP a HDP o 6,3 % v roce 2027 (MF) a o zvolené tempo od roku 2028. Přírůstek dluhu bývá vyšší než schodek, protože stát si půjčuje i na splátky a rezervy (v roce 2026 schodek 2,7 % HDP, přírůstek dluhu 3,6 % HDP).</li>
+      <li>Počet obyvatel (10,896 mil.) je dopočítaný z údaje MF o dluhu na osobu k 30. 6. 2026.</li>
+    </ul>
+  </details>
+</section>
+
+</div>
+
+<script>
+(function(){
+"use strict";
+const D = {
+  avgWage: 48967, minWage: 22400,
+  slevaM: 2570,                    // sleva na poplatníka 30 840 Kč/rok
+  thr23Y: 36*48967,                // 1 762 812 Kč/rok
+  spCapY: 2350416,                 // max. vyměřovací základ SP
+  emp: {sp:.071, zp:.045}, er: {sp:.248, zp:.09},
+  osvcSpMinY: 6*5720 + 6*5005,     // 64 350 Kč
+  osvcZpMinY: 3306*12,             // 39 672 Kč
+  pausalCap: {"0.8":1600000,"0.6":1200000,"0.4":800000,"0.3":600000},
+  dppLimit: 12000, dpcLimit: 4500,
+  vat: {food:.12, std:.21},
+  exciseFuel: {b:12.84, n:9.95},
+  beerExcise: 32*12/200,           // 32 Kč/hl/°P × 12° / 200 půllitrů
+  cigSpec: 2.39, cigAdv: .30, cigMin: 4.66,
+  debtAnchor: {t: Date.UTC(2026,5,30,22,0,0), v: 3726.8e9},
+  debtEnd26: {t: Date.UTC(2026,11,31,23,0,0), v: 3991e9},
+  debtGrowth27: 313.6e9,
+  interest26: 110e9,
+  pop: 3726.8e9/342034,
+  govDebt25: 44.2, brake: 55, nrrYear: 2037,
+  budget: [
+    ["Sociální dávky a důchody (MPSV)", 994.4],
+    ["Všeobecná pokladní správa", 266.3],
+    ["Školství", 268.7],
+    ["Obrana", 154.8],
+    ["Doprava", 129.4],
+    ["Vnitro a policie", 114.9],
+    ["Úroky ze státního dluhu", 110.0, true],
+    ["Ostatní ministerstva a úřady", 249.1]
+  ],
+  budgetTotal: 2287.6
+};
+const $ = id => document.getElementById(id);
+const fmt = (n, d=0) => new Intl.NumberFormat("cs-CZ",{maximumFractionDigits:d,minimumFractionDigits:d}).format(n);
+const kc = n => fmt(Math.round(n)) + " Kč";
+const val = id => { const v = parseFloat($(id).value); return isFinite(v) && v > 0 ? v : 0; };
+let type = "hpp", period = 1, last = null;
+
+function incomeTaxM(base, decl){
+  const thrM = D.thr23Y/12;
+  const b = Math.ceil(base/100)*100;
+  let t = .15*Math.min(b,thrM) + .23*Math.max(0,b-thrM);
+  if (decl) t -= D.slevaM;
+  return Math.max(0, Math.round(t));
+}
+function employee(G, decl, limit){
+  const insured = limit == null || G >= limit;
+  const spBase = Math.min(G, D.spCapY/12);
+  const r = {
+    gross: G,
+    erSp: insured ? Math.ceil(spBase*D.er.sp) : 0,
+    erZp: insured ? Math.ceil(G*D.er.zp) : 0,
+    sp: insured ? Math.ceil(spBase*D.emp.sp) : 0,
+    zp: insured ? Math.ceil(G*D.emp.zp) : 0
+  };
+  r.tax = (!insured && !decl) ? Math.round(G*.15) : incomeTaxM(G, decl);
+  r.cost = G + r.erSp + r.erZp;
+  r.net = G - r.sp - r.zp - r.tax;
+  return r;
+}
+function osvc(){
+  const R = val("rev"), mode = $("exp").value;
+  let E;
+  if (mode === "real") E = Math.min(val("realexp"), R);
+  else E = Math.min(R*parseFloat(mode), D.pausalCap[mode]/12);
+  const Z = Math.max(0, R - E), Zy = Z*12;
+  let spY = .292*Math.min(.55*Zy, D.spCapY), zpY = .135*.5*Zy;
+  spY = Math.max(spY, D.osvcSpMinY); zpY = Math.max(zpY, D.osvcZpMinY); // hlavní činnost
+  const thr = D.thr23Y;
+  const taxY = Math.max(0, .15*Math.min(Zy,thr) + .23*Math.max(0,Zy-thr) - D.slevaM*12);
+  const r = {gross: Z, erSp:0, erZp:0, sp: spY/12, zp: zpY/12, tax: taxY/12};
+  r.cost = Z; r.net = Z - r.sp - r.zp - r.tax; r.revenue = R; r.expenses = E;
+  return r;
+}
+function pausal(){
+  const R = val("prev"), P = parseFloat($("band").value);
+  // 1. pásmo: rozpad 6 578 / 3 306 / 100 Kč (BusinessInfo); u 2. a 3. pásma jen celková částka
+  const parts = P === 9984 ? [6578,3306,100] : null;
+  const r = parts ? {gross: R, erSp:0, erZp:0, sp: parts[0], zp: parts[1], tax: parts[2]} : {gross: R, erSp:0, erZp:0, sp: 0, zp: 0, tax: P, noSplit: true};
+  r.cost = R; r.net = R - P; r.pausal = P;
+  return r;
+}
+function compute(){
+  let r;
+  if (type === "hpp") r = employee(val("gross"), $("decl").checked, null);
+  else if (type === "dpp") r = employee(val("gross"), $("decl").checked, D.dppLimit);
+  else if (type === "dpc") r = employee(val("gross"), $("decl").checked, D.dpcLimit);
+  else if (type === "osvc") r = osvc();
+  else if (type === "duch"){ const P = val("pension"); r = {gross:P, erSp:0, erZp:0, sp:0, zp:0, tax:0, cost:P, net:P}; }
+  else r = pausal();
+
+  const net = Math.max(0, r.net);
+  const food = val("food"), energy = val("energy"), rent = val("rent");
+  const fuelL = val("fuelL"), fuelP = val("fuelP"), ft = $("fuelType").value;
+  const beerM = val("beer")*52/12, beerP = val("beerP");
+  const cigM = val("cig")*52/12, cigP = val("cigP");
+  const fuelSpend = fuelL*fuelP, beerSpend = beerM*beerP, cigSpend = cigM*cigP;
+  const save = net*Math.min(val("save"),90)/100;
+  const other = Math.max(0, net - save - food - energy - rent - fuelSpend - beerSpend - cigSpend);
+  const vatOf = (x, rate) => x*rate/(1+rate);
+
+  const exFuel = fuelL*D.exciseFuel[ft];
+  const exBeer = beerM*D.beerExcise;
+  const exCig = cigM*20*Math.max(D.cigSpec + D.cigAdv*cigP/20, D.cigMin);
+  const vat = vatOf(food,D.vat.food) + vatOf(energy,D.vat.std) + vatOf(fuelSpend,D.vat.std) + vatOf(beerSpend,D.vat.std) + vatOf(cigSpend,D.vat.std) + vatOf(other,D.vat.std);
+  const excise = exFuel + exBeer + exCig;
+  const prop = val("prop")/12;
+
+  const direct = r.erSp + r.erZp + r.sp + r.zp + r.tax;
+  const indirect = vat + excise + prop;
+  const total = direct + indirect;
+  const cost = r.cost;
+  const kept = cost - total;
+  const rate = cost > 0 ? total/cost : 0;
+  return {r, vat, excise, prop, direct, indirect, total, cost, kept, rate, net, overspend: (food+energy+rent+fuelSpend+beerSpend+cigSpend+save) > net};
+}
+
+function line(label, v, cls){ return `<div class="r-line ${cls||""}"><span>${label}</span><span>${v}</span></div>`; }
+
+function render(){
+  const c = compute(); last = c;
+  const p = period, r = c.r, m = x => kc(x*p);
+  const typeNames = {hpp:"Zaměstnanec (HPP)", osvc:"OSVČ", pausal:"OSVČ v paušálním režimu", dpp:"Dohoda o provedení práce", dpc:"Dohoda o pracovní činnosti", duch:"Důchodce"};
+  $("r-type").textContent = typeNames[type];
+  let h = "";
+  if (type === "hpp" || type === "dpp" || type === "dpc"){
+    h += line("Hrubá mzda", m(r.gross));
+    h += line("Sociální pojištění od firmy", "+ " + m(r.erSp), "hidden-cost");
+    h += line("Zdravotní pojištění od firmy", "+ " + m(r.erZp), "hidden-cost");
+    h += line("<b>Kolik stojíš firmu</b>", "<b>"+m(r.cost)+"</b>", "r-sum");
+    h += line("− odvody firmy státu", "− " + m(r.erSp + r.erZp), "minus");
+    h += line("− tvoje sociální pojištění", "− " + m(r.sp), "minus");
+    h += line("− tvoje zdravotní pojištění", "− " + m(r.zp), "minus");
+    h += line("− daň z příjmů", "− " + m(r.tax), "minus");
+  } else if (type === "osvc"){
+    h += line("Tržby", m(r.revenue));
+    h += line("Výdaje", "− " + m(r.expenses));
+    h += line("<b>Zisk (tvůj výdělek)</b>", "<b>"+m(r.gross)+"</b>", "r-sum");
+    h += line("− sociální pojištění", "− " + m(r.sp), "minus");
+    h += line("− zdravotní pojištění", "− " + m(r.zp), "minus");
+    h += line("− daň z příjmů", "− " + m(r.tax), "minus");
+  } else if (type === "duch"){
+    h += line("<b>Důchod</b>", "<b>"+m(r.gross)+"</b>", "r-sum");
+    h += line("Daň a pojištění z důchodu", m(0));
+  } else {
+    h += line("<b>Příjmy</b>", "<b>"+m(r.gross)+"</b>", "r-sum");
+    h += line("− paušální daň celkem", "− " + m(r.pausal), "minus");
+    if (!r.noSplit){
+      h += line("&nbsp;&nbsp;z toho sociální", m(r.sp));
+      h += line("&nbsp;&nbsp;z toho zdravotní", m(r.zp));
+      h += line("&nbsp;&nbsp;z toho daň", m(r.tax));
+    } else {
+      h += line("&nbsp;&nbsp;(daň, sociální a zdravotní dohromady)", "");
+    }
+  }
+  h += line("<b>Na účet ti přijde</b>", "<b>"+m(c.net)+"</b>", "r-sum");
+  h += line("− DPH v nákupech", "− " + m(c.vat), "minus");
+  h += line("− spotřební daně", "− " + m(c.excise), "minus");
+  if (c.prop > 0) h += line("− daň z nemovitosti", "− " + m(c.prop), "minus");
+  h += line("<b>Opravdu tvoje</b>", "<b>"+m(c.kept)+"</b>", "r-sum");
+  h += line("CELKEM STÁTU", m(c.total), "r-total");
+  $("r-lines").innerHTML = h;
+  $("stamp").textContent = fmt(c.rate*100,1) + " % STÁTU";
+  let note = (type==="hpp"||type==="dpp"||type==="dpc") ? "* Tyto peníze odvádí zaměstnavatel. Na výplatní pásce je nevidíš, ale jsou to peníze za tvou práci."
+    : type==="duch" ? "Z důchodu se daň neplatí, pokud nepřesáhne 36násobek minimální mzdy ročně. Stát si ale bere DPH a spotřební daně z každého nákupu."
+    : "Pro OSVČ je základem tvůj zisk, protože za tebe nikdo jiný neodvádí.";
+  if (c.overspend) note += " Pozor: zadaná útrata a úspory převyšují čistý příjem.";
+  $("r-note").textContent = note;
+
+  // hero 100 Kč
+  const state100 = Math.round(c.rate*100), you100 = 100 - state100;
+  $("h-you").textContent = fmt(Math.max(0,you100));
+  $("h-state").textContent = fmt(state100);
+  const coins = $("coins");
+  if (!coins.children.length) for (let i=0;i<100;i++){ const d=document.createElement("div"); d.className="coin"; coins.appendChild(d); }
+  [...coins.children].forEach((d,i)=>{ d.className = "coin " + (i < state100 ? "state" : "you"); });
+
+  // facts
+  const day = Math.round(c.rate*365);
+  const dt = new Date(2026,0,1); dt.setDate(dt.getDate() + day);
+  $("f-day").textContent = c.rate > 0 ? dt.toLocaleDateString("cs-CZ",{day:"numeric",month:"long"}) : "–";
+  const yrs = val("years");
+  const life = c.total*12*yrs;
+  $("f-life").textContent = life >= 1e6 ? fmt(life/1e6,1) + " mil. Kč" : kc(life);
+  $("f-life-p").textContent = `Za ${fmt(yrs)} let práce odvedeš státu tolik v dnešních cenách.`;
+  $("f-years").textContent = fmt(c.rate*yrs,1) + " let";
+  $("f-years-p").textContent = `Z ${fmt(yrs)} let práce připadne tolik let na daně a odvody.`;
+
+  $("share-text").textContent = `Ze 100 Kč, které vydělám, si stát vezme ${state100} Kč. Měsíčně ${kc(c.total)}, za život ${fmt(life/1e6,1)} mil. Kč. Pro stát dřu každý rok až do ${dt.toLocaleDateString("cs-CZ",{day:"numeric",month:"long"})}. A dluh mezitím roste o ${kc(perSecond(Date.now())*60)} každou minutu. Spočítej si svůj účet. #UcetOdStatu`;
+
+  renderBudget(c);
+  renderReal(c, state100, life, dt);
+}
+
+const PETITION_URL = ""; // sem doplň odkaz na petici; prázdné = tlačítko se nezobrazí
+function renderReal(c, state100, life, dt){
+  const r = c.r;
+  // hodiny týdně pro stát
+  const hours = c.rate*40;
+  const full = Math.floor(hours/8), rest = Math.round(hours - full*8);
+  const days = ["pondělí","úterý","středu","čtvrtek","pátek"];
+  let phrase = full ? "celé " + days.slice(0,full).join(", ").replace(/, ([^,]*)$/," a $1") : "";
+  if (rest) phrase += (phrase ? " a " : "") + rest + " h " + (full < 5 ? (full===2?"ve ":"v ") + days[full] : "");
+  if (type === "duch"){
+    $("x-week").textContent = kc(c.indirect) + " měsíčně";
+    $("x-week-p").textContent = `Tolik ti stát vezme z důchodu jen na DPH a spotřebních daních v obchodě a u pumpy. Za rok je to ${kc(c.indirect*12)}.`;
+  } else {
+    $("x-week").textContent = fmt(hours,1) + " h týdně";
+    $("x-week-p").textContent = `Ze 40hodinového týdne pracuješ ${phrase} jen pro stát. Pro sebe začínáš pracovat až potom.`;
+  }
+  // rozdíl firma vs. kapsa
+  const gapM = c.cost - c.kept;
+  $("x-gap").textContent = kc(gapM*12) + " ročně";
+  $("x-gap-p").textContent = type==="duch"
+    ? `Z ${kc(c.cost)} důchodu ti po zaplacení daní v cenách zbyde ${kc(c.kept)}. Rozdíl je tolik za rok.`
+    : type==="hpp"||type==="dpp"||type==="dpc"
+    ? `Tvoje práce má hodnotu ${kc(c.cost)} měsíčně, tolik za tebe firma platí. Tobě z toho po všech daních zbyde ${kc(c.kept)}. Rozdíl je tolik za rok.`
+    : `Z ${kc(c.cost)} měsíčního výdělku ti po všech daních a odvodech zbyde ${kc(c.kept)}. Rozdíl je tolik za rok.`;
+  // úroky z tvých peněz
+  const zpY = (r.zp + r.erZp)*12, restY = c.total*12 - zpY;
+  const intY = restY*110/D.budgetTotal;
+  const energy = val("energy");
+  $("x-int").textContent = kc(intY) + " ročně";
+  $("x-int-p").textContent = energy > 0
+    ? `Tolik z tvých daní půjde jen na úroky ze státního dluhu. Za to bys zaplatil ${fmt(intY/energy,1)} měsíců elektřiny a plynu.`
+    : `Tolik z tvých daní půjde jen na úroky ze státního dluhu.`;
+  const now = Date.now();
+  $("x-baby").textContent = kc(debtAt(now)/D.pop);
+  $("x-min").textContent = kc(perSecond(now)*60);
+  // e-mail
+  const dayTxt = dt.toLocaleDateString("cs-CZ",{day:"numeric",month:"long"});
+  $("mail-text").textContent =
+`Vážená paní poslankyně / Vážený pane poslanče,
+
+jsem váš volič. Spočítal jsem si, kolik odvádím státu: ze 100 Kč, které vydělám, si stát vezme ${state100} Kč. Měsíčně je to ${kc(c.total)}, za pracovní život ${fmt(life/1e6,1)} mil. Kč. Pro stát pracuji každý rok až do ${dayTxt}.
+
+Zároveň státní dluh podle Ministerstva financí letos vzroste o více než 300 miliard korun a jen na úroky stát zaplatí 110 miliard. Z mých daní na úroky půjde ${kc(intY)} ročně.
+
+Žádám vás o odpověď na dvě otázky:
+1. Budete hlasovat pro rozpočet, který zastaví další zadlužování?
+2. Jaký máte konkrétní plán, jak dluh přestat zvyšovat, a do kdy?
+
+Děkuji za odpověď.
+
+S pozdravem
+[jméno, obec]`;
+  const pet = $("petition");
+  if (PETITION_URL){ pet.href = PETITION_URL; pet.hidden = false; }
+}
+
+function renderBudget(c){
+  const r = c.r;
+  const zpY = (r.zp + r.erZp)*12;
+  const restY = (c.total*12) - zpY;
+  let h = `<div class="bar"><span>Zdravotní pojišťovny</span><div class="track"><div class="fill" style="width:${Math.min(100, zpY/(c.total*12||1)*100)}%"></div></div><b>${kc(zpY)}</b></div>`;
+  D.budget.forEach(([name, mld, isDebt]) => {
+    const share = mld/D.budgetTotal, amt = restY*share;
+    h += `<div class="bar ${isDebt?"debt-row":""}"><span>${name}</span><div class="track"><div class="fill" style="width:${Math.min(100, amt/(c.total*12||1)*100)}%"></div></div><b>${kc(amt)}</b></div>`;
+  });
+  $("bars").innerHTML = h + `<p class="muted" style="font-size:.85rem">Částky za rok. Červeně: kolik z tvých peněz jde jen na úroky ze státního dluhu.</p>`;
+}
+
+/* debt clock */
+const openedAt = Date.now();
+function debtAt(t){
+  const a = D.debtAnchor, e = D.debtEnd26;
+  if (t <= e.t) return a.v + (e.v - a.v)*(t - a.t)/(e.t - a.t);
+  return e.v + D.debtGrowth27*(t - e.t)/(365*864e5);
+}
+function perSecond(t){
+  const a = D.debtAnchor, e = D.debtEnd26;
+  return t <= e.t ? (e.v - a.v)/((e.t - a.t)/1000) : D.debtGrowth27/(365*86400);
+}
+function tick(){
+  const now = Date.now(), d = debtAt(now);
+  $("debt-tick").textContent = kc(d);
+  $("d-pp").textContent = kc(d/D.pop);
+  $("d-ps").textContent = kc(perSecond(now));
+  $("d-since").textContent = kc(d - debtAt(openedAt));
+  $("d-int").textContent = fmt(D.interest26/1e9) + " mld. Kč";
+  $("d-intpp").textContent = kc(D.interest26/D.pop);
+  tickCountdown(now);
+}
+
+/* debt brake projection */
+let crossT = null, proj = [];
+function project(){
+  const d = parseFloat($("def").value), g = parseFloat($("gdp").value)/100;
+  $("def-v").textContent = fmt(d,1) + " %"; $("gdp-v").textContent = fmt(g*100,1) + " %";
+  // 2026 podle predikce MF (45,8 % HDP); 2027 nominální růst 6,3 % podle MF; od 2028 posuvník
+  proj = [{y:2025, r:D.govDebt25}, {y:2026, r:45.8}]; crossT = null;
+  let r = 45.8;
+  for (let y=2027; y<=2060; y++){
+    const gy = y === 2027 ? 0.063 : g;
+    const nr = r/(1+gy) + d;
+    proj.push({y, r:nr});
+    if (crossT === null && nr >= D.brake){
+      const f = (D.brake - r)/(nr - r);
+      crossT = Date.UTC(y-1,11,31) + f*365*864e5;
+    }
+    r = nr;
+  }
+  if (crossT === null) $("cd-date").textContent = "Při tomto tempu dluh brzdu nepřekročí";
+  else $("cd-date").textContent = new Date(crossT).toLocaleDateString("cs-CZ",{month:"long",year:"numeric"});
+  drawChart();
+  tickCountdown(Date.now());
+}
+function tickCountdown(now){
+  if (crossT === null || crossT <= now){ ["cd-y","cd-d","cd-h2","cd-s"].forEach(id=>$(id).textContent = crossT===null ? "–" : "0"); return; }
+  let s = Math.floor((crossT - now)/1000);
+  const y = Math.floor(s/(365*86400)); s -= y*365*86400;
+  const dd = Math.floor(s/86400); s -= dd*86400;
+  const hh = Math.floor(s/3600); s -= hh*3600;
+  $("cd-y").textContent = y; $("cd-d").textContent = dd; $("cd-h2").textContent = hh; $("cd-s").textContent = fmt(s);
+}
+function drawChart(){
+  const W=560,H=300,L=44,R=16,T=16,B=34;
+  const pts = proj.filter(p=>p.y<=2045);
+  const x0=2025,x1=2045, yMin=40, yMax=Math.max(70, Math.ceil(Math.max(...pts.map(p=>p.r))/5)*5);
+  const X = y => L + (y-x0)/(x1-x0)*(W-L-R), Y = v => T + (yMax-v)/(yMax-yMin)*(H-T-B);
+  const css = getComputedStyle(document.documentElement);
+  const ink=css.getPropertyValue("--ink").trim(), muted=css.getPropertyValue("--muted").trim(), line=css.getPropertyValue("--line").trim(), stamp=css.getPropertyValue("--stamp").trim(), navy=css.getPropertyValue("--navy").trim();
+  let s = "";
+  for (let v=yMin; v<=yMax; v+=5){ s += `<line x1="${L}" x2="${W-R}" y1="${Y(v)}" y2="${Y(v)}" stroke="${line}" stroke-width="1"/><text x="${L-8}" y="${Y(v)+4}" text-anchor="end" font-size="11" fill="${muted}">${v} %</text>`; }
+  for (let y=2025; y<=2045; y+=5){ s += `<text x="${X(y)}" y="${H-12}" text-anchor="middle" font-size="11" fill="${muted}">${y}</text>`; }
+  s += `<line x1="${L}" x2="${W-R}" y1="${Y(55)}" y2="${Y(55)}" stroke="${stamp}" stroke-width="2" stroke-dasharray="6 4"/><text x="${W-R}" y="${Y(55)-6}" text-anchor="end" font-size="11" font-weight="600" fill="${stamp}">dluhová brzda 55 %</text>`;
+  s += `<line x1="${X(D.nrrYear)}" x2="${X(D.nrrYear)}" y1="${T}" y2="${H-B}" stroke="${muted}" stroke-width="1" stroke-dasharray="2 3"/><text x="${X(D.nrrYear)+4}" y="${T+10}" font-size="10" fill="${muted}">NRR: ${D.nrrYear}</text>`;
+  const path = pts.map((p,i)=>(i?"L":"M")+X(p.y).toFixed(1)+" "+Y(Math.min(p.r,yMax)).toFixed(1)).join(" ");
+  const area = path + ` L${X(pts[pts.length-1].y).toFixed(1)} ${Y(yMin)} L${X(pts[0].y).toFixed(1)} ${Y(yMin)} Z`;
+  s += `<path d="${area}" fill="${navy}" fill-opacity=".1"/><path d="${path}" fill="none" stroke="${navy}" stroke-width="2.5"/>`;
+  s += `<circle cx="${X(2025)}" cy="${Y(D.govDebt25)}" r="4" fill="${ink}"/><text x="${X(2025)+8}" y="${Y(D.govDebt25)+16}" font-size="11" fill="${ink}">2025: ${fmt(D.govDebt25,1)} %</text>`;
+  if (crossT !== null){
+    const cy = 1970 + crossT/(365.25*864e5);
+    if (cy <= 2045) s += `<circle cx="${X(cy)}" cy="${Y(55)}" r="6" fill="${stamp}"/>`;
+  }
+  $("chart").innerHTML = s;
+}
+
+/* presets útraty */
+const PRESET_STD = {food:9000, energy:4500, rent:9000, fuelL:80, beer:5, cig:0};
+const PRESET_SENIOR = {food:7000, energy:4000, rent:5000, fuelL:30, beer:2, cig:0};
+let spendDirty = false;
+function applyPreset(p){ Object.keys(p).forEach(k => { $(k).value = p[k]; }); }
+Object.keys(PRESET_STD).forEach(k => $(k).addEventListener("input", () => { spendDirty = true; }));
+
+/* debt history chart */
+const HIST = [[1993,158.8],[1995,154.4],[1997,173.1],[1999,228.4],[2001,345.0],[2003,493.2],[2005,691.2],[2007,892.3],[2008,999.5],[2009,1178.2],[2010,1344.1],[2011,1499.4],[2012,1667.6],[2013,1683.3],[2014,1663.7],[2015,1673.0],[2016,1613.4],[2017,1624.7],[2018,1622.0],[2019,1640.2],[2020,2049.7],[2021,2465.7],[2022,2894.8],[2023,3110.9],[2024,3365.2],[2025,3677.6],[2026,3991.0]];
+function drawHist(){
+  const W=560,H=280,L=52,R=16,T=20,B=34, x0=1993,x1=2026, yMax=4000;
+  const X = y => L + (y-x0)/(x1-x0)*(W-L-R), Y = v => T + (yMax-v)/yMax*(H-T-B);
+  const css = getComputedStyle(document.documentElement);
+  const muted=css.getPropertyValue("--muted").trim(), line=css.getPropertyValue("--line").trim(), stamp=css.getPropertyValue("--stamp").trim(), navy=css.getPropertyValue("--navy").trim(), ink=css.getPropertyValue("--ink").trim();
+  let s="";
+  for (let v=0; v<=yMax; v+=1000){ s += `<line x1="${L}" x2="${W-R}" y1="${Y(v)}" y2="${Y(v)}" stroke="${line}"/><text x="${L-8}" y="${Y(v)+4}" text-anchor="end" font-size="11" fill="${muted}">${fmt(v)}</text>`; }
+  [1993,2000,2010,2020,2026].forEach(y => { s += `<text x="${X(y)}" y="${H-12}" text-anchor="middle" font-size="11" fill="${muted}">${y}</text>`; });
+  const pts = HIST.filter(p=>p[0]<=2025);
+  const path = pts.map((p,i)=>(i?"L":"M")+X(p[0]).toFixed(1)+" "+Y(p[1]).toFixed(1)).join(" ");
+  s += `<path d="${path} L${X(2025)} ${Y(0)} L${X(1993)} ${Y(0)} Z" fill="${navy}" fill-opacity=".12"/><path d="${path}" fill="none" stroke="${navy}" stroke-width="2.5"/>`;
+  s += `<line x1="${X(2025)}" y1="${Y(3677.6)}" x2="${X(2026)}" y2="${Y(3991)}" stroke="${stamp}" stroke-width="2.5" stroke-dasharray="4 3"/>`;
+  s += `<circle cx="${X(2026)}" cy="${Y(3991)}" r="4" fill="${stamp}"/><text x="${X(2026)-6}" y="${Y(3991)-8}" text-anchor="end" font-size="11" font-weight="600" fill="${stamp}">2026 plán: 3 991 mld.</text>`;
+  s += `<circle cx="${X(1993)}" cy="${Y(158.8)}" r="4" fill="${ink}"/><text x="${X(1993)+6}" y="${Y(158.8)-8}" font-size="11" fill="${ink}">1993: 159 mld.</text>`;
+  $("hist").innerHTML = s;
+}
+
+/* senioři */
+function renderSenior(){
+  const perPensioner = D.interest26/12/2822409;
+  $("s-int").textContent = kc(perPensioner);
+  const n = Math.max(1, Math.round(val("grandkids")) || 1);
+  const now = Date.now(), per = debtAt(now)/D.pop;
+  $("g-now").textContent = kc(per*n);
+  $("g-int").textContent = kc(D.interest26/D.pop*n);
+  const grow = D.debtGrowth27/D.pop*n;
+  $("g-p").textContent = `Pokud bude dluh dál růst tempem roku 2026, přibude ${n === 1 ? "tvému vnoučeti" : "tvým " + n + " vnoučatům"} dohromady dalších ${kc(grow)} dluhu každý rok.`;
+}
+$("grandkids").addEventListener("input", renderSenior);
+
+/* den D */
+function renderBoom(){
+  const pp = 310e9/D.pop;
+  const hh = Math.max(1, Math.round(val("household")) || 1);
+  const cutShare = 310/D.budgetTotal; // 13,5 %
+  const pension = type === "duch" ? val("pension") : 21839;
+  $("me-cut").textContent = "−" + kc(pension*cutShare) + " měsíčně";
+  $("me-cut-p").textContent = type === "duch"
+    ? `Kdyby se ubralo stejně ze všech výdajů státu, přišel bys o tolik z důchodu ${kc(pension)}. Každý měsíc. Stejně tak by se krátily přídavky na děti, rodičovská, platy učitelů, policistů a hasičů.`
+    : `Kdyby se ubralo stejně ze všech výdajů státu, klesl by průměrný důchod o tolik. Stejně tak by se krátily přídavky na děti, rodičovská, platy učitelů, policistů a hasičů. Týká se to tvých rodičů, dětí i tebe.`;
+  $("me-tax").textContent = "+" + kc(pp*hh/12) + " měsíčně";
+  $("me-tax-p").textContent = `Kdyby se díra zalepila daněmi, zaplatí tvoje domácnost (${hh} ${hh===1?"osoba":hh<5?"osoby":"osob"}) navíc tolik. To je ${kc(pp*hh)} za rok, každý rok, dokud se rozpočet nesrovná.`;
+  // zápalná šňůra: od 44,2 % (2025) do 55 %
+  const now = Date.now();
+  let frac = 1;
+  if (crossT !== null){
+    const start = Date.UTC(2025,11,31);
+    frac = Math.min(1, Math.max(0, (now - start)/(crossT - start)));
+    $("fuse-date").textContent = "Brzda 55 % HDP · " + new Date(crossT).toLocaleDateString("cs-CZ",{month:"long",year:"numeric"});
+  } else { frac = 0.5; $("fuse-date").textContent = "Brzda 55 % HDP · při tomto tempu nenastane"; }
+  fusePct = Math.max(4, frac*100);
+  if (!document.querySelector(".fuse").classList.contains("burning")){
+    $("fuse-burn").style.width = fusePct + "%"; $("spark").style.left = fusePct + "%";
+  }
+}
+// vrstvy výbuchu musí být přímo v body, jinak je posune otřes stránky
+document.body.appendChild($("boom-canvas")); document.body.appendChild($("boom-flash"));
+let fusePct = 4;
+function explode(){
+  const sec = $("boom"), btn = $("boom-btn"), blast = $("blast"), fuse = document.querySelector(".fuse");
+  btn.disabled = true; btn.textContent = "Hoří…";
+  blast.hidden = true; $("blast-wait").hidden = false; sec.classList.remove("exploded");
+  // šňůra dohoří
+  fuse.classList.add("burning");
+  $("fuse-burn").style.width = "100%"; $("spark").style.left = "100%";
+  setTimeout(() => {
+    const sp = $("spark").getBoundingClientRect();
+    detonate(sp.left + sp.width/2, sp.top + sp.height/2);
+    $("blast-wait").hidden = true; blast.hidden = false;
+    // karty vyletí z místa výbuchu
+    blast.querySelectorAll(".shard").forEach((s, i) => {
+      const r = s.getBoundingClientRect();
+      s.style.setProperty("--dx", (sp.left - (r.left + r.width/2)) + "px");
+      s.style.setProperty("--dy", (sp.top - (r.top + r.height/2)) + "px");
+      s.style.setProperty("--r", ((i%2?-1:1)*(15+i*9)) + "deg");
+      s.style.setProperty("--d", (0.15 + i*0.07) + "s");
+    });
+    void sec.offsetWidth; sec.classList.add("exploded");
+    setTimeout(() => {
+      fuse.classList.remove("burning");
+      $("fuse-burn").style.width = fusePct + "%"; $("spark").style.left = fusePct + "%";
+      btn.disabled = false; btn.textContent = "Odpálit znovu";
+    }, 2800);
+  }, 1500);
+}
+function detonate(cx, cy){
+  const btn = $("boom-btn");
+  const fl = $("boom-flash");
+  fl.style.setProperty("--fx", cx + "px"); fl.style.setProperty("--fy", cy + "px");
+  fl.classList.remove("on"); void fl.offsetWidth; fl.classList.add("on");
+  const wrap = document.querySelector(".wrap");
+  wrap.classList.remove("shake"); void wrap.offsetWidth; wrap.classList.add("shake");
+  const cv = $("boom-canvas"), ctx = cv.getContext("2d"), dpr = window.devicePixelRatio || 1;
+  cv.width = innerWidth*dpr; cv.height = innerHeight*dpr; cv.style.display = "block"; ctx.scale(dpr,dpr);
+  const css = getComputedStyle(document.documentElement);
+  const cols = [css.getPropertyValue("--stamp").trim(), "#ffd166", "#ff8c42", css.getPropertyValue("--ink").trim()];
+  const parts = [];
+  for (let i=0;i<260;i++){
+    const a = Math.random()*Math.PI*2, sp = 5 + Math.random()*22;
+    parts.push({x:cx, y:cy, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp - 4, life:1, rot:Math.random()*6, vr:(Math.random()-.5)*.4,
+      kind: Math.random() < .35 ? "kc" : "chip", size: 8 + Math.random()*14, col: cols[i%cols.length]});
+  }
+  const rings = [0, 0.12, 0.24];
+  const t0 = performance.now();
+  function frame(t){
+    const el = (t - t0)/1000;
+    ctx.clearRect(0,0,innerWidth,innerHeight);
+    rings.forEach(d => {
+      const k = el - d; if (k < 0 || k > .9) return;
+      ctx.beginPath(); ctx.arc(cx, cy, k*Math.max(innerWidth,innerHeight)*.9, 0, Math.PI*2);
+      ctx.strokeStyle = `rgba(200,16,46,${(1-k/.9)*.6})`; ctx.lineWidth = 14*(1-k/.9)+1; ctx.stroke();
+    });
+    parts.forEach(p => {
+      p.x += p.vx; p.y += p.vy; p.vy += .35; p.vx *= .985; p.rot += p.vr; p.life -= .009;
+      if (p.life <= 0) return;
+      ctx.save(); ctx.globalAlpha = Math.max(0,p.life); ctx.translate(p.x,p.y); ctx.rotate(p.rot); ctx.fillStyle = p.col;
+      if (p.kind === "kc"){ ctx.font = `800 ${p.size+6}px "Bricolage Grotesque",sans-serif`; ctx.fillText("Kč",-p.size/2,p.size/3); }
+      else { ctx.fillRect(-p.size/2,-p.size/6,p.size,p.size/3); }
+      ctx.restore();
+    });
+    if (el < 2.6) requestAnimationFrame(frame);
+    else { ctx.clearRect(0,0,innerWidth,innerHeight); cv.style.display = "none"; ctx.setTransform(1,0,0,1,0,0); }
+  }
+  requestAnimationFrame(frame);
+}
+$("boom-btn").addEventListener("click", explode);
+
+/* větší písmo */
+$("bigfont").addEventListener("click", () => {
+  const on = document.documentElement.classList.toggle("big");
+  $("bigfont").setAttribute("aria-pressed", on ? "true" : "false");
+  $("bigfont").textContent = on ? "Normální písmo" : "Větší písmo";
+  try { localStorage.setItem("bigfont", on ? "1" : "0"); } catch(e){}
+  drawChart(); drawHist();
+});
+try { if (localStorage.getItem("bigfont") === "1") $("bigfont").click(); } catch(e){}
+
+/* events */
+document.querySelectorAll(".tab").forEach(b => b.addEventListener("click", () => {
+  type = b.dataset.type;
+  document.querySelectorAll(".tab").forEach(x => x.setAttribute("aria-pressed", x===b ? "true" : "false"));
+  $("in-emp").hidden = !["hpp","dpp","dpc"].includes(type);
+  $("in-osvc").hidden = type !== "osvc";
+  $("in-pausal").hidden = type !== "pausal";
+  $("in-duch").hidden = type !== "duch";
+  $("in-years").hidden = type === "duch";
+  if (!spendDirty) applyPreset(type === "duch" ? PRESET_SENIOR : PRESET_STD);
+  if (type === "dpp" && val("gross") === D.avgWage) $("gross").value = 11000;
+  if (type === "dpc" && val("gross") === D.avgWage) $("gross").value = 8000;
+  if (type === "hpp" && (val("gross") === 11000 || val("gross") === 8000)) $("gross").value = D.avgWage;
+  render();
+}));
+document.querySelectorAll(".r-period button").forEach(b => b.addEventListener("click", () => {
+  period = +b.dataset.p;
+  document.querySelectorAll(".r-period button").forEach(x => x.setAttribute("aria-pressed", x===b ? "true" : "false"));
+  render();
+}));
+$("exp").addEventListener("change", () => { $("realexp-l").hidden = $("exp").value !== "real"; });
+document.querySelectorAll(".panel input, .panel select").forEach(el => el.addEventListener("input", render));
+$("def").addEventListener("input", project); $("gdp").addEventListener("input", project);
+$("refresh").addEventListener("click", () => {
+  tick(); project(); render();
+  $("refresh-msg").textContent = "Přepočítáno " + new Date().toLocaleTimeString("cs-CZ") + ". Data ze zdrojů ověřena 11. 10. 2026.";
+});
+function copyFrom(srcId, btn){
+  const label = btn.textContent;
+  btn.addEventListener("click", async () => {
+    const t = $(srcId).textContent;
+    try { await navigator.clipboard.writeText(t); btn.textContent = "Zkopírováno"; }
+    catch(e){ const rg = document.createRange(); rg.selectNodeContents($(srcId)); const s = getSelection(); s.removeAllRanges(); s.addRange(rg); btn.textContent = "Označeno, zkopíruj Ctrl+C"; }
+    setTimeout(()=>{ btn.textContent = label; }, 2500);
+  });
+}
+copyFrom("share-text", $("copy"));
+copyFrom("share-text", $("copy2"));
+copyFrom("mail-text", $("copy-mail"));
+window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", drawChart);
+new MutationObserver(drawChart).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
+
+window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", drawHist);
+new MutationObserver(drawHist).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
+render(); project(); tick(); drawHist(); renderSenior(); renderBoom();
+$("def").addEventListener("input", renderBoom); $("gdp").addEventListener("input", renderBoom);
+$("household").addEventListener("input", renderBoom);
+document.querySelectorAll(".panel input, .panel select, .tab").forEach(el => el.addEventListener(el.classList.contains("tab") ? "click" : "input", () => setTimeout(renderBoom, 0)));
+setInterval(tick, 250);
+})();
+</script>
