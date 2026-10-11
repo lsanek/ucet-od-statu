@@ -108,6 +108,7 @@ input[type=range]{width:100%;accent-color:var(--stamp)}
 .cd-digits div{background:var(--stamp-soft);border-radius:4px;padding:10px 6px;text-align:center;display:flex;flex-direction:column;gap:2px}
 .cd-digits b{font:600 clamp(1.3rem,3.4vw,2rem) var(--f-mono);color:var(--stamp);font-variant-numeric:tabular-nums}
 .cd-digits span{font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+.scen{display:flex;flex-wrap:wrap;gap:6px}
 .cd-date{font-family:var(--f-display);font-weight:800;font-size:1.5rem}
 .slider-row{display:flex;flex-direction:column;gap:6px}
 .slider-row .lbl{display:flex;justify-content:space-between;font-size:.88rem;font-weight:500}
@@ -404,6 +405,12 @@ details[open] summary{margin-bottom:10px}
   <p>Zákon o pravidlech rozpočtové odpovědnosti stanoví dluhovou brzdu na 55 % HDP. Když ji veřejný dluh překročí, musí vláda, kraje i obce předložit vyrovnané rozpočty. V praxi to znamená prudké škrty nebo vyšší daně najednou. Odpočet níže počítá, kdy na ni dojdeme při zvoleném tempu zadlužování.</p>
   <div class="cd">
     <div class="cd-box">
+      <div class="scen" role="group" aria-label="Scénáře">
+        <button class="tab" data-d="2.5" data-g="6" aria-pressed="false">Když to půjde dobře</button>
+        <button class="tab" data-d="3.6" data-g="5.7" aria-pressed="true">Současný kurz (MF)</button>
+        <button class="tab" data-d="4.5" data-g="4" aria-pressed="false">Když přijde krize</button>
+      </div>
+      <small class="muted" id="scen-note">Dluh roste o 3,6 % HDP ročně a HDP o 5,7 %, jak vychází z predikce MF.</small>
       <span class="eyebrow">Při tomto tempu narazíme</span>
       <div class="cd-date" id="cd-date">–</div>
       <div class="cd-digits" aria-live="off">
@@ -909,6 +916,23 @@ function renderSenior(){
   $("g-p").textContent = `Pokud bude dluh dál růst tempem roku 2026, přibude ${n === 1 ? "tvému vnoučeti" : "tvým " + n + " vnoučatům"} dohromady dalších ${kc(grow)} dluhu každý rok.`;
 }
 $("grandkids").addEventListener("input", renderSenior);
+
+/* scénáře odpočtu */
+const SCEN_NOTES = {
+  "2.5": "Optimistický scénář: dluh roste jen o 2,5 % HDP ročně a HDP o 6 %, jako v dobrém roce 2025.",
+  "3.6": "Dluh roste o 3,6 % HDP ročně a HDP o 5,7 %, jak vychází z predikce MF.",
+  "4.5": "Krizový scénář: slabší ekonomika (HDP +4 % ročně) a vyšší schodky (dluh +4,5 % HDP ročně). Žádný extrém, jen horší roky."
+};
+document.querySelectorAll(".scen .tab").forEach(b => b.addEventListener("click", () => {
+  document.querySelectorAll(".scen .tab").forEach(x => x.setAttribute("aria-pressed", x===b ? "true" : "false"));
+  $("def").value = b.dataset.d; $("gdp").value = b.dataset.g;
+  $("scen-note").textContent = SCEN_NOTES[b.dataset.d];
+  project(); renderBoom();
+}));
+["def","gdp"].forEach(id => $(id).addEventListener("input", () => {
+  document.querySelectorAll(".scen .tab").forEach(x => x.setAttribute("aria-pressed","false"));
+  $("scen-note").textContent = "Vlastní nastavení.";
+}));
 
 /* den D */
 function renderBoom(){
